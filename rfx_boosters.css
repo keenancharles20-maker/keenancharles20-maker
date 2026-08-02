@@ -1,0 +1,358 @@
+/* ══════════════════════════════════════════════════════════════════
+   RED FOREST FX — PRODUCTIVITY BOOSTERS v3
+   All new CSS for: Circuit Breaker, Trailing Stop, Multi-Pair Dashboard,
+   Pre-Market Briefing, Price Alerts, Trade Comparison, Keyboard Shortcuts,
+   Screenshot, Risk-of-Ruin, Calendar, Voice Alerts, PWA, Setup Classifier,
+   + All Quick Wins (A–J)
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── TIER 1: CIRCUIT BREAKER OVERLAY ─────────────────────────── */
+.rfx-circuit-overlay {
+  position: fixed; inset: 0; z-index: 10000;
+  background: rgba(30, 0, 0, 0.95); backdrop-filter: blur(16px);
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 40px;
+}
+.rfx-circuit-overlay.active { display: flex; }
+.rfx-circuit-icon { font-size: 72px; margin-bottom: 24px; animation: rfxCircuitPulse 1.5s ease infinite; }
+@keyframes rfxCircuitPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+.rfx-circuit-title {
+  font-size: 36px; font-weight: 900; color: #FF4D4D; letter-spacing: -0.03em; margin-bottom: 12px;
+}
+.rfx-circuit-sub { font-size: 16px; color: rgba(255,255,255,0.6); line-height: 1.7; max-width: 440px; margin-bottom: 32px; }
+.rfx-circuit-stats { display: flex; gap: 24px; margin-bottom: 32px; }
+.rfx-circuit-stat {
+  background: rgba(255,77,77,0.08); border: 1px solid rgba(255,77,77,0.25);
+  border-radius: 14px; padding: 16px 24px; text-align: center;
+}
+.rfx-circuit-stat-val { font-size: 28px; font-weight: 900; color: #FF4D4D; }
+.rfx-circuit-stat-label { font-size: 10px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: .1em; margin-top: 4px; }
+.rfx-circuit-dismiss {
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 600;
+  padding: 10px 24px; border-radius: 999px; cursor: none; font-family: var(--sans);
+  transition: all .2s;
+}
+.rfx-circuit-dismiss:hover { background: rgba(255,255,255,0.12); color: #fff; }
+
+/* ── TIER 1: MULTI-PAIR DASHBOARD ────────────────────────────── */
+.rfx-dashboard-section {
+  background: var(--card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+}
+.rfx-pair-grid {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-top: 32px;
+}
+.rfx-pair-card {
+  background: var(--card2); border: 1px solid var(--border); border-radius: 14px;
+  padding: 18px 16px; cursor: pointer; transition: all .3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; overflow: hidden;
+  min-height: 120px;
+}
+.rfx-pair-card:hover {
+  border-color: rgba(2,223,130,0.4);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 28px rgba(2,223,130,0.12);
+}
+.rfx-pair-card.all-clear {
+  border-color: rgba(2,223,130,0.5);
+  background: linear-gradient(135deg, rgba(2,223,130,0.08) 0%, var(--card2) 100%);
+}
+.rfx-pair-card.all-clear::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background: linear-gradient(90deg, var(--green), rgba(2,223,130,0.6));
+  box-shadow: 0 0 16px var(--green);
+}
+.rfx-pair-card.loading {
+  border-color: rgba(255,255,255,0.1);
+  opacity: 0.7;
+}
+.rfx-pair-card.loading::after {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  background: linear-gradient(90deg, transparent, var(--yellow), transparent);
+  animation: rfxLoadingSweep 2s ease-in-out infinite;
+}
+.rfx-pair-card.mixed {
+  border-color: rgba(255,193,7,0.2);
+}
+.rfx-pair-card.mixed::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  background: linear-gradient(90deg, var(--yellow), rgba(255,193,7,0.4));
+}
+.rfx-pair-card.ranging {
+  border-color: rgba(148,163,184,0.2);
+}
+.rfx-pair-card .pc-name {
+  font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 10px;
+  letter-spacing: 0.5px;
+}
+.rfx-pair-card .pc-price {
+  font-size: 20px; font-weight: 900; color: var(--green); margin-bottom: 10px;
+  font-variant-numeric: tabular-nums;
+  font-family: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
+}
+.rfx-pair-card .pc-row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 11px; color: var(--muted); margin-bottom: 6px;
+  font-weight: 500;
+}
+.rfx-pair-card .pc-dir {
+  font-weight: 700; font-size: 12px;
+}
+.rfx-pair-card .pc-dir-aligned { color: var(--green); }
+.rfx-pair-card .pc-dir-mixed { color: var(--yellow); }
+.rfx-pair-card .pc-dir-ranging { color: var(--muted); }
+.rfx-pair-card .pc-dir-loading { color: rgba(255,255,255,0.3); }
+.rfx-pair-card .pc-badge {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 12px;
+  font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  padding: 5px 12px; border-radius: 999px;
+  transition: all .2s;
+}
+.rfx-pair-card .pc-badge.aligned {
+  color: var(--green); background: rgba(2,223,130,.12); border: 1px solid rgba(2,223,130,.3);
+}
+.rfx-pair-card .pc-badge.mixed {
+  color: var(--yellow); background: rgba(255,193,7,.1); border: 1px solid rgba(255,193,7,.25);
+}
+.rfx-pair-card .pc-badge.ranging {
+  color: var(--muted); background: rgba(148,163,184,.1); border: 1px solid rgba(148,163,184,.2);
+}
+.rfx-pair-card .pc-badge.loading {
+  color: rgba(255,255,255,0.5); background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
+  animation: rfxBadgePulse 1.5s ease-in-out infinite;
+}
+
+@keyframes rfxLoadingSweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+@keyframes rfxBadgePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@media (max-width: 900px) {
+  .rfx-pair-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── TIER 2: PRICE ALERTS PANEL ──────────────────────────────── */
+.rfx-alerts-section { margin-top: 32px; }
+.rfx-alert-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+  padding: 24px; margin-bottom: 16px;
+}
+.rfx-alert-row {
+  display: flex; align-items: center; gap: 12px; padding: 14px 16px; margin-bottom: 8px;
+  background: var(--card2); border: 1px solid var(--border); border-radius: 10px;
+  font-size: 13px; transition: all .15s;
+}
+.rfx-alert-row:hover { border-color: rgba(2,223,130,0.25); }
+.rfx-alert-row:last-child { margin-bottom: 0; }
+.rfx-alert-pair { font-weight: 800; color: #fff; min-width: 70px; font-size: 12px; letter-spacing: .05em; }
+.rfx-alert-price { font-weight: 700; color: var(--green); font-variant-numeric: tabular-nums; font-size: 13px; }
+.rfx-alert-dir { font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 3px 10px; border-radius: 999px; letter-spacing: .05em; }
+.rfx-alert-dir.long { color: var(--green); background: rgba(2,223,130,.1); border: 1px solid rgba(2,223,130,.2); }
+.rfx-alert-dir.short { color: var(--red); background: rgba(255,77,77,.08); border: 1px solid rgba(255,77,77,.15); }
+.rfx-alert-del {
+  background: transparent; border: 1px solid rgba(255,255,255,.08); color: var(--muted); cursor: none;
+  font-size: 14px; padding: 4px 10px; border-radius: 8px; transition: all .15s; margin-left: auto;
+  font-family: var(--sans);
+}
+.rfx-alert-del:hover { color: var(--red); background: rgba(255,77,77,.1); border-color: rgba(255,77,77,.2); }
+.rfx-alert-form {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.rfx-alert-form input, .rfx-alert-form select {
+  background: var(--card2); border: 1px solid var(--border); color: #fff;
+  border-radius: 8px; padding: 8px 14px; font-size: 12px; font-family: var(--sans);
+  transition: border-color .2s;
+}
+.rfx-alert-form input::placeholder { color: rgba(255,255,255,.3); }
+.rfx-alert-form input:focus, .rfx-alert-form select:focus { border-color: rgba(2,223,130,.4); outline: none; }
+.rfx-alert-add-btn {
+  background: var(--green); color: #000; border: none; border-radius: 999px;
+  padding: 8px 20px; font-size: 12px; font-weight: 700; cursor: none; font-family: var(--sans);
+  box-shadow: 0 0 14px rgba(2,223,130,.25); transition: all .2s;
+}
+.rfx-alert-add-btn:hover { background: #04F090; box-shadow: 0 0 24px rgba(2,223,130,.45); }
+
+/* ── TIER 2: TRADE COMPARISON ENGINE ─────────────────────────── */
+.rfx-comparison-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+  padding: 24px; margin-top: 16px;
+}
+.rfx-comp-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.rfx-comp-stat { font-size: 28px; font-weight: 900; }
+.rfx-comp-stat.green { color: var(--green); }
+.rfx-comp-stat.red { color: var(--red); }
+.rfx-comp-stat.yellow { color: var(--yellow); }
+.rfx-comp-detail { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.rfx-comp-bar {
+  height: 6px; background: rgba(255,255,255,.06); border-radius: 3px;
+  overflow: hidden; margin-top: 12px;
+}
+.rfx-comp-bar-fill { height: 100%; border-radius: 3px; transition: width .6s ease; }
+
+/* ── TIER 3: ECONOMIC CALENDAR INLINE ───────────────────────── */
+.rfx-calendar-section .sec-tag { margin-top: 32px; }
+.rfx-calendar-timeline {
+  display: flex; flex-direction: column; gap: 6px; margin-top: 16px;
+}
+.rfx-cal-event {
+  display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+  background: var(--card2); border: 1px solid var(--border); border-radius: 10px;
+  font-size: 12px; transition: all .15s;
+}
+.rfx-cal-event:hover { border-color: rgba(2,223,130,.2); transform: translateX(2px); }
+.rfx-cal-event.high { border-left: 3px solid var(--red); }
+.rfx-cal-event.medium { border-left: 3px solid var(--yellow); }
+.rfx-cal-event.low { border-left: 3px solid rgba(255,255,255,.15); }
+.rfx-cal-time { font-weight: 700; color: var(--muted); min-width: 50px; font-variant-numeric: tabular-nums; font-size: 11px; }
+.rfx-cal-country { font-weight: 800; color: #fff; min-width: 36px; font-size: 11px; letter-spacing: .03em; }
+.rfx-cal-title { flex: 1; color: rgba(255,255,255,.7); font-size: 12px; }
+.rfx-cal-impact { font-size: 9px; font-weight: 700; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; letter-spacing: .05em; }
+.rfx-cal-impact.high { color: var(--red); background: rgba(255,77,77,.1); border: 1px solid rgba(255,77,77,.15); }
+.rfx-cal-impact.medium { color: var(--yellow); background: rgba(219,228,76,.08); border: 1px solid rgba(219,228,76,.15); }
+.rfx-cal-empty {
+  font-size: 12px; color: var(--green); padding: 12px 16px;
+  background: rgba(2,223,130,.05); border: 1px solid rgba(2,223,130,.15);
+  border-radius: 10px; margin-top: 16px;
+}
+
+/* ── TIER 3: RISK OF RUIN ────────────────────────────────────── */
+.rfx-ror-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+  padding: 24px; margin-top: 16px;
+}
+.rfx-ror-gauge {
+  width: 100%; height: 8px; background: linear-gradient(90deg, var(--green) 0%, var(--yellow) 50%, var(--red) 100%);
+  border-radius: 4px; position: relative; margin: 16px 0;
+}
+.rfx-ror-marker {
+  position: absolute; top: -4px; width: 16px; height: 16px;
+  border-radius: 50%; background: #fff; border: 3px solid var(--card);
+  box-shadow: 0 0 10px rgba(0,0,0,.5); transform: translateX(-50%); transition: left .6s ease;
+}
+.rfx-ror-value { font-size: 32px; font-weight: 900; }
+.rfx-ror-label { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* ── TIER 3: SETUP TYPE BADGE ────────────────────────────────── */
+.rfx-setup-type {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(2,223,130,.08); border: 1px solid rgba(2,223,130,.2);
+  border-radius: 999px; padding: 5px 14px;
+  font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--green); margin-top: 8px;
+}
+
+/* ── QUICK WIN: SESSION COUNTDOWN ────────────────────────────── */
+.rfx-session-countdown {
+  position: fixed; bottom: 20px; right: 20px; z-index: 200;
+  background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+  padding: 12px 18px; display: flex; align-items: center; gap: 10px;
+  backdrop-filter: blur(12px); box-shadow: 0 4px 24px rgba(0,0,0,.4);
+  font-size: 12px; font-weight: 600; color: var(--muted);
+  transition: all .3s; cursor: none;
+}
+.rfx-session-countdown:hover { border-color: rgba(2,223,130,.3); }
+.rfx-session-countdown.urgent { border-color: rgba(255,77,77,.4); }
+.rfx-session-countdown .sc-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--green);
+  box-shadow: 0 0 7px var(--green); animation: blink 2s ease infinite;
+}
+.rfx-session-countdown.urgent .sc-dot { background: var(--red); box-shadow: 0 0 7px var(--red); }
+.rfx-sc-time { font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
+
+/* ── QUICK WIN: LAST TRADE TIMER ─────────────────────────────── */
+.rfx-last-trade-timer {
+  font-size: 11px; color: var(--muted); margin-top: 8px;
+  display: flex; align-items: center; gap: 6px;
+}
+.rfx-ltt-val { color: var(--green); font-weight: 700; }
+
+/* ── QUICK WIN: BOOKMARKED SETUPS ────────────────────────────── */
+.rfx-bookmarks {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px;
+}
+.rfx-bm-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(2,223,130,.06); border: 1px solid rgba(2,223,130,.18);
+  border-radius: 999px; padding: 5px 12px;
+  font-size: 11px; font-weight: 700; color: var(--green);
+  cursor: none; transition: all .2s;
+}
+.rfx-bm-chip:hover { background: rgba(2,223,130,.12); border-color: rgba(2,223,130,.35); }
+.rfx-bm-chip .bm-del { color: rgba(255,255,255,.3); margin-left: 4px; font-size: 13px; }
+.rfx-bm-chip .bm-del:hover { color: var(--red); }
+
+/* ── QUICK WIN: KEYBOARD SHORTCUT TOAST ──────────────────────── */
+.rfx-kbd-toast {
+  position: fixed; top: 80px; right: 20px; z-index: 300;
+  background: var(--card); border: 1px solid rgba(2,223,130,.25);
+  border-radius: 10px; padding: 8px 16px;
+  font-size: 12px; font-weight: 600; color: var(--green);
+  box-shadow: 0 4px 20px rgba(0,0,0,.4);
+  opacity: 0; transform: translateY(-10px); transition: all .25s;
+  pointer-events: none;
+}
+.rfx-kbd-toast.show { opacity: 1; transform: translateY(0); }
+
+/* ── QUICK WIN: SOUND INDICATOR ─────────────────────────────── */
+.rfx-sound-toggle {
+  position: fixed; bottom: 70px; left: 20px; z-index: 200;
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--card); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; cursor: none; transition: all .2s;
+  box-shadow: 0 2px 12px rgba(0,0,0,.3);
+}
+.rfx-sound-toggle:hover { border-color: rgba(2,223,130,.4); transform: scale(1.1); }
+.rfx-sound-toggle.muted { opacity: 0.4; }
+
+/* ── QUICK WIN: CORRELATION HEATMAP ──────────────────────────── */
+.rfx-heatmap {
+  display: grid; gap: 2px; margin-top: 16px;
+}
+.rfx-heatmap-cell {
+  padding: 8px; text-align: center; font-size: 10px; font-weight: 700;
+  border-radius: 4px; transition: all .2s;
+}
+.rfx-heatmap-cell.header { color: var(--muted); background: transparent; font-size: 9px; }
+.rfx-heatmap-cell.high-corr { background: rgba(255,77,77,0.15); color: var(--red); }
+.rfx-heatmap-cell.med-corr { background: rgba(219,228,76,0.1); color: var(--yellow); }
+.rfx-heatmap-cell.low-corr { background: rgba(2,223,130,0.08); color: var(--green); }
+
+/* ── PWA: MOBILE OPTIMIZATIONS ───────────────────────────────── */
+@media (max-width: 768px) {
+  .hero { grid-template-columns: 1fr; padding: 100px 20px 40px; }
+  .orb-scene { width: 280px; height: 280px; }
+  .orb-main { width: 160px; height: 160px; }
+  .orb-score-num { font-size: 48px; }
+  .stat-grid { grid-template-columns: 1fr 1fr; }
+  .calc-grid { grid-template-columns: 1fr; }
+  .guard-grid { grid-template-columns: 1fr 1fr; }
+  .score-breakdown-grid { grid-template-columns: 1fr 1fr; }
+  .nav { padding: 0 16px; }
+  .nav-links { gap: 16px; }
+  .nav-links a { font-size: 11px; }
+  .rfx-session-countdown { bottom: 10px; right: 10px; padding: 8px 12px; font-size: 11px; }
+  .rfx-sound-toggle { width: 36px; height: 36px; bottom: 10px; left: 10px; }
+  .rfx-sound-toggle { bottom: 56px; }
+}
+
+/* ── PRINT / PDF EXPORT ──────────────────────────────────────── */
+@media print {
+  .nav, .ticker-wrap, .rfx-sound-toggle, .rfx-session-countdown,
+  #c-dot, #c-ring, .calc-section, .location-section, .hero-btns { display: none !important; }
+  body { background: #fff; color: #000; }
+  .hero-headline { color: #000; }
+}
+
+/* ── VOICE ALERT BADGE ───────────────────────────────────────── */
+.rfx-voice-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(2,223,130,.08); border: 1px solid rgba(2,223,130,.2);
+  border-radius: 999px; padding: 4px 12px;
+  font-size: 10px; font-weight: 700; color: var(--green);
+  letter-spacing: .08em; text-transform: uppercase;
+}
