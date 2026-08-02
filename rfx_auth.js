@@ -61,6 +61,11 @@ window.RFX_CONFIG = {
     var current = localStorage.getItem('rfxCurrentUser') || '';
     return (configs[current] && configs[current].telegramChatId) || '';
   },
+  get newsProxyUrl() {
+    var configs = JSON.parse(localStorage.getItem('rfxUserConfigs') || '{}');
+    var current = localStorage.getItem('rfxCurrentUser') || '';
+    return (configs[current] && configs[current].newsProxyUrl) || '';
+  },
   get n8nWebhook() {
     var configs = JSON.parse(localStorage.getItem('rfxUserConfigs') || '{}');
     var current = localStorage.getItem('rfxCurrentUser') || '';
@@ -555,6 +560,14 @@ window.rfxOpenSettings = function() {
     'border-radius:8px;color:#fff;font-size:13px;font-family:monospace;box-sizing:border-box;outline:none;">' +
     '</div>' +
 
+    '<div style="margin-bottom:24px;">' +
+    '<label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,0.5);' +
+    'text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">News Proxy URL <span style="color:rgba(255,255,255,0.3);font-weight:400;">(optional — your own ForexFactory proxy)</span></label>' +
+    '<input id="rfxSettingsNewsProxy" type="text" value="' + (config.newsProxyUrl || '') + '" placeholder="https://your-worker.workers.dev/" style="width:100%;' +
+    'padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);' +
+    'border-radius:8px;color:#fff;font-size:13px;font-family:monospace;box-sizing:border-box;outline:none;">' +
+    '</div>' +
+
     '<div id="rfxSettingsError" style="font-size:12px;color:#FF4D4D;margin-bottom:12px;display:none;"></div>' +
 
     '<div style="display:flex;gap:10px;">' +
@@ -598,6 +611,7 @@ window.rfxSaveSettings = function() {
     telegramBotToken: document.getElementById('rfxSettingsTgToken').value.trim(),
     telegramChatId: document.getElementById('rfxSettingsTgChat').value.trim(),
     n8nWebhook: document.getElementById('rfxSettingsN8n').value.trim(),
+    newsProxyUrl: document.getElementById('rfxSettingsNewsProxy').value.trim(),
     createdAt: configs[current].createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
