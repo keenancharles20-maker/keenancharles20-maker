@@ -8,6 +8,36 @@
 'use strict';
 
 // ══════════════════════════════════════════════════════════════════
+// LOADING SCREEN — shows immediately, hides after auth
+// ══════════════════════════════════════════════════════════════════
+
+function injectLoadingScreen() {
+  var html = '<div id="rfxLoadingScreen" style="position:fixed;inset:0;background:#000;' +
+    'display:flex;align-items:center;justify-content:center;z-index:999999;' +
+    'transition:opacity 0.5s ease;">' +
+    '<div style="text-align:center;">' +
+    '<div style="font-size:48px;margin-bottom:20px;animation:pulse 2s ease-in-out infinite;">🌲</div>' +
+    '<div style="font-size:18px;font-weight:700;color:#02DF82;letter-spacing:0.1em;">Red Forest FX</div>' +
+    '<div style="margin-top:20px;width:120px;height:2px;background:rgba(2,223,130,0.2);border-radius:2px;overflow:hidden;">' +
+    '<div style="width:100%;height:100%;background:#02DF82;animation:loadingBar 1.5s ease-in-out infinite;"></div>' +
+    '</div>' +
+    '<div style="margin-top:12px;font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:0.08em;">INITIALIZING...</div>' +
+    '</div>' +
+    '<style>@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.05);opacity:0.8}}' +
+    '@keyframes loadingBar{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}</style>' +
+    '</div>';
+  document.body.insertAdjacentHTML('afterbegin', html);
+}
+
+function hideLoadingScreen() {
+  var loader = document.getElementById('rfxLoadingScreen');
+  if (loader) {
+    loader.style.opacity = '0';
+    setTimeout(function() { loader.remove(); }, 500);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
 // LOCALSTORAGE KEYS (for backup)
 // ══════════════════════════════════════════════════════════════════
 
@@ -416,6 +446,9 @@ window.rfxHandleImportBackup = function(input) {
 // ══════════════════════════════════════════════════════════════════
 
 function rfxAuthInit() {
+  // Show loading screen immediately
+  injectLoadingScreen();
+
   var configs = JSON.parse(localStorage.getItem('rfxUserConfigs') || '{}');
   var currentUser = localStorage.getItem('rfxCurrentUser') || '';
 
@@ -455,7 +488,8 @@ function rfxAuthInit() {
         setTimeout(function() { migrateNotice.remove(); }, 1000);
       }, 4000);
 
-      // Just show the dashboard — no gate
+      // Hide loading screen
+      hideLoadingScreen();
       return;
     }
   }
@@ -464,6 +498,8 @@ function rfxAuthInit() {
     // Logged in — show dashboard
     if (typeof updateRfxUserBadge === 'function') updateRfxUserBadge();
     if (window.rfxOnConfigReady) window.rfxOnConfigReady();
+    // Hide loading screen
+    hideLoadingScreen();
     return;
   }
 
@@ -474,6 +510,9 @@ function rfxAuthInit() {
     // No users at all — show setup
     injectSetupHTML();
   }
+
+  // Hide loading screen after login/setup is injected
+  hideLoadingScreen();
 }
 
 // Run on DOM ready
