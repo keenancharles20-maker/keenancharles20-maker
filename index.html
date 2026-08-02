@@ -8422,7 +8422,20 @@ function getLocalDateKey(dateObj) {
     AUDUSD: ['AUD','USD']
   };
 
-  async function rfxCheckNews(pair) {
+  async function rfxCheckNews(pair, silent) {
+    // If news proxy is known-dead, skip without spamming console
+    var newsUrl = (typeof RFX_CONFIG !== 'undefined' && RFX_CONFIG.newsProxyUrl)
+      ? RFX_CONFIG.newsProxyUrl
+      : 'https://rfx-news.keenan-charles20.workers.dev/';
+    if (!RFX_CONFIG.newsProxyUrl && newsUrl.indexOf('keenan-charles20') !== -1) {
+      _newsCache[pair] = { ts: Date.now(), clear: null, events: [], dead: true };
+      var statusEl = document.getElementById('newsFilterStatus');
+      if (statusEl && !silent) {
+        statusEl.textContent = '⚠ News proxy offline — check forexfactory.com';
+        statusEl.style.color = 'var(--yellow)';
+      }
+      return null;
+    }
     var currencies  = (PAIR_CURRENCIES[pair] || []);
     var statusEl    = document.getElementById('newsFilterStatus');
     var linkEl      = document.getElementById('newsFilterLink');
@@ -8430,8 +8443,7 @@ function getLocalDateKey(dateObj) {
     if (statusEl) { statusEl.textContent = '⏳ Checking…'; statusEl.style.color = 'rgba(255,255,255,.4)'; }
 
     try {
-      var res = await fetch('https://rfx-news.keenan-charles20.workers.dev/',
-        { cache: 'no-store' });
+      var res = await fetch(newsUrl, { cache: 'no-store', signal: AbortSignal.timeout(8000) });
 
       if (!res.ok) throw new Error('News proxy ' + res.status);
       var data = await res.json();
@@ -8481,7 +8493,7 @@ function getLocalDateKey(dateObj) {
         statusEl.textContent = '⚠ News check failed — verify on forexfactory.com';
         statusEl.style.color = 'var(--yellow)';
       }
-      console.warn('News check error:', e.message);
+      if (!silent) console.warn('News check error:', e.message);
       return null;
     }
   }
@@ -8491,7 +8503,7 @@ function getLocalDateKey(dateObj) {
 
   async function rfxAutoNewsCheck() {
     var pair = (safeEl('c-pair') || {}).value || 'GBPUSD';
-    await rfxCheckNews(pair);
+    await rfxCheckNews(pair, true);
     // Also update the news filter card
     rfxUpdateNewsFilter();
   }
@@ -9010,7 +9022,7 @@ function getLocalDateKey(dateObj) {
 <script src="rfx_auth.js"></script>
 <script src="rfx_boosters.js"></script>
 <script src="rfx_auto.js"></script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a228ef90fc0911af',t:'MTc4NTI5NDY4MQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a24d8cd14caad380',t:'MTc4NTY3ODYxMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a228ef90fc0911af',t:'MTc4NTI5NDY4MQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a24f1f0089b9340d',t:'MTc4NTY5NTA4Mw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
 
 <!-- PERFORMANCE METRICS MODAL -->
