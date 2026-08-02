@@ -2952,7 +2952,6 @@
     </div>
   </div>
 
-  <!-- PSYCHOLOGY CHECK — growth-card style (unchanged structure) -->
   <!-- PSYCHOLOGY CHECK — calc-result card style -->
   <div class="calc-result reveal rd3" style="display:block;margin-top:16px;">
 
@@ -8152,7 +8151,7 @@ function getLocalDateKey(dateObj) {
   // ── Build psychology check ────────────────────────────────────
   function aiBuildPsych() {
     const el = document.getElementById('aiPsychCheck');
-    if (!el) return;
+    if (!el) { console.warn('aiBuildPsych: #aiPsychCheck not found'); return; }
     el.innerHTML = AI_PSYCH_QUESTIONS.map((q, i) => `
       <div class="psych-check-row" id="aips-${q.id}" onclick="aiTogglePsych('${q.id}')">
         <div class="psych-check-num">${i + 1}</div>
@@ -8674,7 +8673,7 @@ function getLocalDateKey(dateObj) {
       const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer ' + OR_KEY,
+          'Authorization': 'Bearer ' + getOpenRouterKey(),
           'Content-Type': 'application/json',
           'HTTP-Referer': 'https://redforestfx.app',
           'X-Title': 'Red Forest FX'
@@ -8718,8 +8717,9 @@ function getLocalDateKey(dateObj) {
     }
   }
 
-  // ── AI Journal Review (OpenRouter) ────────────────────────────
-  var OR_KEY = RFX_CONFIG.openRouterKey;
+  // ─ AI Journal Review (OpenRouter) ────────────────────────────
+  // Read key at call time (not load time) so user config is available
+  function getOpenRouterKey() { return (typeof RFX_CONFIG !== 'undefined' ? RFX_CONFIG.openRouterKey : ''); }
 
   async function rfxAIJournalReview() {
     var btn    = document.getElementById('aiJournalBtn');
@@ -8783,7 +8783,7 @@ function getLocalDateKey(dateObj) {
       var res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer ' + OR_KEY,
+          'Authorization': 'Bearer ' + getOpenRouterKey(),
           'Content-Type': 'application/json',
           'HTTP-Referer': 'https://redforestfx.app',
           'X-Title': 'Red Forest FX'
@@ -8979,13 +8979,29 @@ function getLocalDateKey(dateObj) {
   };
 
   // ── Init ──────────────────────────────────────────────────────
+  // Define callback for auth system to call after login
+  window.rfxOnConfigReady = function() {
+    if (window._aiInitDone) return; // Prevent double init
+    window._aiInitDone = true;
+    
+    // Delay to ensure DOM is fully ready after auth
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        try { aiBuildFilters(); } catch(e) { console.warn('aiBuildFilters error:', e); }
+        try { aiBuildPsych(); } catch(e) { console.warn('aiBuildPsych error:', e); }
+        try { aiUpdateConf(); } catch(e) { console.warn('aiUpdateConf error:', e); }
+        try { aiRunAssistant(); } catch(e) { console.warn('aiRunAssistant error:', e); }
+        try { rfxUpdateStreak(); } catch(e) { console.warn('rfxUpdateStreak error:', e); }
+        try { rfxUpdateNewsFilter(); } catch(e) { console.warn('rfxUpdateNewsFilter error:', e); }
+      }, 100);
+    });
+  };
+
+  // Fallback: also run on window load (for cases where auth is already done)
   window.addEventListener('load', function() {
-    aiBuildFilters();
-    aiBuildPsych();
-    aiUpdateConf();
-    aiRunAssistant();
-    rfxUpdateStreak();
-    rfxUpdateNewsFilter();
+    if (!window._aiInitDone) {
+      window.rfxOnConfigReady();
+    }
   });
 
 
@@ -8994,7 +9010,7 @@ function getLocalDateKey(dateObj) {
 <script src="rfx_auth.js"></script>
 <script src="rfx_boosters.js"></script>
 <script src="rfx_auto.js"></script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a228ef90fc0911af',t:'MTc4NTI5NDY4MQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a24cc77ceefb9ac1',t:'MTc4NTY3MDUyNw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a228ef90fc0911af',t:'MTc4NTI5NDY4MQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a24d8cd14caad380',t:'MTc4NTY3ODYxMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
 
 <!-- PERFORMANCE METRICS MODAL -->
