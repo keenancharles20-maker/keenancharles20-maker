@@ -2288,6 +2288,20 @@
     .btn-pill { font-size: 11px; padding: 6px 10px; }
     #rfxUserBadge { display: none; }
 
+    /* Range Position — stack on mobile */
+    .loc-layout {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 24px !important;
+      margin-top: 24px !important;
+    }
+    .loc-headline { font-size: 24px !important; line-height: 1.2 !important; }
+    .loc-headline br { display: none; }
+    .range-viz { width: 100%; }
+    .range-nums { font-size: 10px; }
+    .range-status-bar { flex-wrap: wrap; gap: 8px; }
+    .rsb-pct { font-size: 32px !important; }
+
     /* Hero — reduce padding on mobile */
     .hero {
       min-height: auto !important;
@@ -3138,7 +3152,7 @@
 
   <div class="sec-tag reveal">AI Trade Assistant</div>
   <h2 style="font-size:clamp(28px,3.5vw,44px);font-weight:900;letter-spacing:-.03em;margin-bottom:8px;" class="reveal rd1">
-    Should you<br><span style="color:var(--green)">enter this trade?</span>
+    Should you <span style="color:var(--green)">enter this trade?</span>
   </h2>
   <p style="color:var(--muted);font-size:14px;margin-bottom:0;" class="reveal rd2">Rule-based assistant — explains when to enter, when to stay out, and exactly what is missing.</p>
 
@@ -9248,7 +9262,7 @@ function getLocalDateKey(dateObj) {
 <script src="rfx_auth.js"></script>
 <script src="rfx_boosters.js"></script>
 <script src="rfx_auto.js"></script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2526494ffe5d361',t:'MTc4NTcyOTM5MA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2527d97cdd4d28a',t:'MTc4NTczMDQxNQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
 
 <!-- PERFORMANCE METRICS MODAL -->
