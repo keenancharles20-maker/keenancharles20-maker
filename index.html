@@ -8208,15 +8208,19 @@ function getLocalDateKey(dateObj) {
     const dailySupports = d === want;
     const rangeNeutral = d === 'range' || h4 === 'range';
     const hardOpposite = d === opposite && h4 === opposite;
+    // Match Pine Script scoring: if score >= 65 and at least one HTF supports, pass
+    // Also pass if both are range (neutral) and score is OK
     const balanced = full
       || (score >= 75 && (h4Supports || dailySupports || rangeNeutral))
-      || (score >= 65 && h4Supports && d !== opposite);
+      || (score >= 65 && (h4Supports || dailySupports || rangeNeutral))
+      || (score >= 65 && d !== opposite && h4 !== opposite);
     return {
       ready: true,
       pass: balanced && !hardOpposite,
       full,
       label: full ? 'Daily + 4H aligned'
-           : balanced ? 'Balanced context accepted'
+           : h4Supports && dailySupports ? 'Both HTF support direction'
+           : balanced ? 'Balanced context accepted (score ' + score + '%)'
            : hardOpposite ? 'HTF opposite direction'
            : 'Context mixed — wait'
     };
@@ -8275,8 +8279,13 @@ function getLocalDateKey(dateObj) {
         check: () => !['off','weekend'].includes(aiGetSession()),
         detail: () => { const s = aiGetSession(); return s==='overlap' ? '🔥 Overlap' : s==='london' ? '🇬🇧 London' : s==='ny' ? '🗽 NY' : s==='weekend' ? '📵 Weekend — market closed until Sunday 22:00 UTC' : '⚠️ Off-session'; } },
       { id:'htf', label:'Balanced HTF Context', auto:true,
-        check: () => aiGetContextState().pass,
-        detail: () => aiGetContextState().label },
+        check: () => { const ctx = aiGetContextState(); return ctx.pass || aiGetScore() >= 65; },
+        detail: () => { const ctx = aiGetContextState(); const score = aiGetScore();
+          if (ctx.full) return 'Daily + 4H aligned';
+          if (ctx.pass) return ctx.label;
+          if (score >= 65) return 'Score ' + score + '% overrides mixed context (Pine logic)';
+          return ctx.label;
+        } },
       { id:'location', label:'Location Advisory', auto:true,
         check: () => { const s = aiGetRangeState(); return s.ready ? s.pass : null; },
         detail: () => { const s = aiGetRangeState(); return s.ready ? s.label : 'Need price+range'; } },
@@ -8311,9 +8320,10 @@ function getLocalDateKey(dateObj) {
           const h  = aiGetHigh(),  l  = aiGetLow();
           const dir = aiGetDir();
           if (!e || !sl || !h || !l) return null;
-          // LONG: SL must be below the 20-bar low
-          // SHORT: SL must be above the 20-bar high
-          return dir === 'LONG' ? sl < l : sl > h;
+          const beyond = dir === 'LONG' ? sl < l : sl > h;
+          // If beyond, always pass. If not beyond but score is high enough, still pass (Pine doesn't enforce this)
+          const score = aiGetScore();
+          return beyond || score >= 65;
         },
         detail: () => {
           const e  = aiGetEntry(), sl = parseFloat((safeEl('c-sl')||{}).value);
@@ -8322,7 +8332,7 @@ function getLocalDateKey(dateObj) {
           if (!e || !sl || !h || !l) return 'Need entry, SL, high and low';
           const ok = dir === 'LONG' ? sl < l : sl > h;
           if (ok) return 'SL ' + sl.toFixed(5) + ' is beyond 20-bar ' + (dir==='LONG'?'low '+l.toFixed(5):'high '+h.toFixed(5));
-          return 'SL ' + sl.toFixed(5) + ' is NOT beyond 20-bar ' + (dir==='LONG'?'low '+l.toFixed(5)+' — move SL lower':'high '+h.toFixed(5)+' — move SL higher');
+          return 'SL ' + sl.toFixed(5) + ' inside range (' + (dir==='LONG'?'low '+l.toFixed(5):'high '+h.toFixed(5)) + ') — accepted by score override';
         }
       },
     ];
@@ -9262,7 +9272,7 @@ function getLocalDateKey(dateObj) {
 <script src="rfx_auth.js"></script>
 <script src="rfx_boosters.js"></script>
 <script src="rfx_auto.js"></script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2527d97cdd4d28a',t:'MTc4NTczMDQxNQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2569546affad9d8',t:'MTc4NTc3MzMyOA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
 
 <!-- PERFORMANCE METRICS MODAL -->
