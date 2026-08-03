@@ -7258,7 +7258,13 @@ function getLocalDateKey(dateObj) {
         units:          units,
         outcome:        'OPEN',
         pnl:            0,
-        score:          (safeEl('c-score') || {}).value ? parseInt((safeEl('c-score') || {}).value) : null,
+        score:          (function() {
+          var v = (safeEl('c-score') || {}).value;
+          if (v && parseInt(v) > 0) return parseInt(v);
+          // Fallback: use last calc score, or score from recent bridge paste
+          if (window._rfxLastScore && window._rfxLastScore > 0) return window._rfxLastScore;
+          return null;
+        })(),
         notes:          'Auto-logged: ' + pair + ' ' + dir + ' @ ' + price.toFixed(pair === 'USDJPY' ? 3 : 5),
         tags:           ['auto-logged'],
         oandaTradeID:   tradeID,
@@ -9234,6 +9240,9 @@ function getLocalDateKey(dateObj) {
   const _origRfxCalc = rfxCalc;
   rfxCalc = function() {
     _origRfxCalc();
+    // Track last calc score for auto-journal fallback
+    var calcScore = parseFloat((safeEl('c-score') || {}).value) || 0;
+    if (calcScore > 0) window._rfxLastScore = calcScore;
     aiRunAssistant();
     rfxUpdateNewsFilter();
     rfxUpdateStreak();
@@ -9272,7 +9281,7 @@ function getLocalDateKey(dateObj) {
 <script src="rfx_auth.js"></script>
 <script src="rfx_boosters.js"></script>
 <script src="rfx_auto.js"></script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2569546affad9d8',t:'MTc4NTc3MzMyOA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a256b3301d53abab',t:'MTc4NTc3NDU1Mw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
 
 <!-- PERFORMANCE METRICS MODAL -->
