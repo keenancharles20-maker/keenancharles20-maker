@@ -2291,15 +2291,23 @@
     /* Hero — reduce padding on mobile */
     .hero {
       min-height: auto !important;
-      padding: 60px 16px 40px !important;
+      padding: 50px 16px 30px !important;
+      grid-template-columns: 1fr !important;
     }
-    .section { padding: 40px 16px; }
+    .section { padding: 30px 16px; }
     .hero-left { max-width: 100%; }
     .hero-right { display: none; }
     .hero-btns { flex-direction: column; width: 100%; gap: 10px; }
     .hero-btns .btn-pill { width: 100%; text-align: center; }
-    .hero-orb { width: 100px !important; height: 100px !important; }
-    .hero-orb-text { font-size: 24px !important; }
+    .hero-orb { width: 80px !important; height: 80px !important; margin: 0 auto 20px !important; }
+    .hero-orb-text { font-size: 20px !important; }
+    .hero-headline { font-size: 28px !important; line-height: 1.2 !important; }
+
+    /* Verdict card — compact */
+    .calc-result .calc-stat-val { font-size: 18px; }
+    .calc-result .calc-stat-label { font-size: 8px; }
+    .calc-result .calc-stat { padding: 10px 12px; }
+    .calc-stat-grid { gap: 8px !important; }
 
     /* Ticker — constrain to screen width */
     .ticker-wrap { margin-top: 52px; overflow: hidden; }
@@ -2384,8 +2392,6 @@
     .calc-result .calc-stat-label { font-size: 8px; }
 
     /* Fix verdict orb */
-    .hero-orb { width: 120px !important; height: 120px !important; }
-    .hero-orb-text { font-size: 28px !important; }
   }
 
   /* ═══════════════════════════════════════════════════════════════
@@ -2404,6 +2410,15 @@
     .rfx-pair-grid { grid-template-columns: 1fr !important; }
     .wr-row { flex-wrap: wrap; }
     .wr-row-head { display: none; }
+    
+    /* Tighter spacing on small phones */
+    .hero { padding: 40px 16px 20px !important; }
+    .section { padding: 24px 14px; }
+    .hero-orb { width: 70px !important; height: 70px !important; }
+    .hero-headline { font-size: 24px !important; }
+    .calc-stat { padding: 10px 12px; }
+    .calc-stat-val { font-size: 18px; }
+    .verdict-bar { padding: 8px 12px; font-size: 11px; }
   }
 
   /* ═══════════════════════════════════════════════════════════════
@@ -9233,7 +9248,7 @@ function getLocalDateKey(dateObj) {
 <script src="rfx_auth.js"></script>
 <script src="rfx_boosters.js"></script>
 <script src="rfx_auto.js"></script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a25254593cb5d2ef',t:'MTc4NTcyODcyNQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2526494ffe5d361',t:'MTc4NTcyOTM5MA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
 
 <!-- PERFORMANCE METRICS MODAL -->
