@@ -4392,7 +4392,7 @@ That's a lifestyle, not a strategy.</div>
       localStorage.removeItem('rfxCurrentUser');
       location.reload();
     } else if (num >= 1 && num <= usernames.length) {
-      localStorage.setItem('rfxCurrentUser', usernames[num-1]);
+      try { localStorage.setItem('rfxCurrentUser', usernames[num-1]); } catch(e) {}
       location.reload();
     }
   };
@@ -4843,7 +4843,7 @@ That's a lifestyle, not a strategy.</div>
     var past = JSON.parse(localStorage.getItem('rfxWeeklyReviews') || '[]');
     past.unshift(review);
     if (past.length > 52) past = past.slice(0, 52);
-    localStorage.setItem('rfxWeeklyReviews', JSON.stringify(past));
+    try { localStorage.setItem('rfxWeeklyReviews', JSON.stringify(past)); } catch(e) {}
     rfxShowToast('💾 Weekly review saved', 'ok');
     displayPastReviews();
     var hint = document.getElementById('wrSaveHint');
@@ -5229,7 +5229,7 @@ function getLocalDateKey(dateObj) {
     try { return JSON.parse(localStorage.getItem('journalEntries') || '[]'); } catch(e) { return []; }
   }
   function jSaveEntries(entries) {
-    localStorage.setItem('journalEntries', JSON.stringify(entries));
+    try { localStorage.setItem('journalEntries', JSON.stringify(entries)); } catch(e) {}
   }
 
   function showJournalPanel() {
@@ -6022,11 +6022,11 @@ function getLocalDateKey(dateObj) {
 
   function warn(msg, type='warn') {
     const el = document.getElementById('calcWarning');
-    el.textContent = msg; el.className = 'calc-warning show ' + type;
+    if (el) { el.textContent = msg; el.className = 'calc-warning show ' + type; }
   }
   function clearWarn() {
     const el = document.getElementById('calcWarning');
-    el.className = 'calc-warning';
+    if (el) el.className = 'calc-warning';
   }
 
   // ─── PINE SCRIPT SCORING ENGINE (JS port) ────────────────────
@@ -6085,7 +6085,7 @@ function getLocalDateKey(dateObj) {
     try { return JSON.parse(localStorage.getItem('trades') || '[]'); } catch(e) { return []; }
   }
   function rfxSaveTrades(t) {
-    localStorage.setItem('trades', JSON.stringify(t));
+    try { localStorage.setItem('trades', JSON.stringify(t)); } catch(e) {}
   }
 
   function rfxSaveTrade() {
@@ -6181,13 +6181,13 @@ function getLocalDateKey(dateObj) {
     const errEl = document.getElementById('modalError');
 
     if (!notes) {
-      errEl.textContent = '⚠ Write WHY you are taking this trade first.';
+      if (errEl) errEl.textContent = '⚠ Write WHY you are taking this trade first.';
       document.getElementById('modalNotes').focus();
       return;
     }
 
     const p = rfxSaveTrade._pending;
-    if (!p) { errEl.textContent = '⚠ No trade data — calculate first.'; return; }
+    if (!p) { if (errEl) errEl.textContent = '⚠ No trade data — calculate first.'; return; }
 
     const now   = new Date();
     const tags  = (document.getElementById('modalTags').value || '')
@@ -6301,7 +6301,7 @@ function getLocalDateKey(dateObj) {
         entries.unshift(crEntry);
       }
 
-      localStorage.setItem('journalEntries', JSON.stringify(entries));
+      try { localStorage.setItem('journalEntries', JSON.stringify(entries)); } catch(e) {}
     } catch(e) { /* silent — journal save failure shouldn't block trade save */ }
 
     rfxCloseModal();
@@ -6456,7 +6456,7 @@ function getLocalDateKey(dateObj) {
         const ask   = parseFloat(p.asks[0].price);
         const mid   = (bid + ask) / 2;
         const spread = ((ask - bid) / (info.dec === 3 ? 0.01 : 0.0001)).toFixed(1);
-        const prev  = livePrices[info.pair]?.price;
+        const prev  = (typeof livePrices !== 'undefined' && livePrices[info.pair]) ? livePrices[info.pair].price : null;
         livePrices[info.pair] = { price: mid, bid, ask, spread, prev: prev || mid, dec: info.dec };
         updateTickerPair(info.pair, mid, prev, info.dec);
 
@@ -6538,6 +6538,7 @@ function getLocalDateKey(dateObj) {
   };
 
   function rfxCheckCorrelation() {
+    try {
     var pair     = (safeEl('c-pair')||{}).value || 'GBPUSD';
     var dirEl    = document.querySelector('.dir-btn.active');
     var dir      = dirEl ? dirEl.dataset.dir : 'LONG';
@@ -6561,6 +6562,7 @@ function getLocalDateKey(dateObj) {
     }
   }
 
+    } catch(e) { /* correlation check failed silently */ }
   // ══════════════════════════════════════════════════════════════════
   // FEATURE 3: ANALYTICS — Weekly P&L, Session, DOW, Duration
   // ══════════════════════════════════════════════════════════════════
@@ -6949,7 +6951,6 @@ function getLocalDateKey(dateObj) {
             if (beRes.ok) {
               var pair = instrument.replace('_','');
               rfxShowToast('🛡 ' + pair + ' SL moved to breakeven — trade protected.', 'ok');
-              console.log('BE set for trade', ot.id, 'at', bePriceStr);
             }
           }
         } catch(beErr) { console.warn('BE check error:', beErr.message); }
@@ -7133,7 +7134,6 @@ function getLocalDateKey(dateObj) {
         }
       };
       read();
-      console.log('⚡ OANDA price stream connected');
 
     } catch(e) {
       _priceStreamOn = false;
@@ -7141,7 +7141,6 @@ function getLocalDateKey(dateObj) {
       console.warn('Price stream error:', e.message);
       // If CORS error, stop trying streams and use polling only
       if (e.message.includes('CORS') || e.message.includes('Failed to fetch') || e.name === 'TypeError') {
-        console.log('⚠ OANDA streaming blocked by CORS — using polling fallback (30s)');
         window._rfxStreamingDisabled = true;
         fetchLivePrices(); // Poll immediately so user doesn't wait 30s
         return; // Don't schedule reconnect
@@ -7201,12 +7200,10 @@ function getLocalDateKey(dateObj) {
         }
       };
       read();
-      console.log('✅ OANDA transaction stream connected');
 
     } catch(e) {
       console.warn('TX stream connect error:', e.message);
       if (e.message.includes('CORS') || e.message.includes('Failed to fetch') || e.name === 'TypeError') {
-        console.log('⚠ TX streaming blocked by CORS — disabling stream');
         window._rfxStreamingDisabled = true;
         return;
       }
@@ -7691,11 +7688,12 @@ function getLocalDateKey(dateObj) {
     // Calculator verdict badge
     const badge = document.getElementById('calcVerdictBadge');
     const vtext = document.getElementById('calcVerdictText');
-    badge.className = 'calc-verdict-badge ' + verdictClass;
-    vtext.textContent = aiVerdict;
+    if (badge) badge.className = 'calc-verdict-badge ' + verdictClass;
+    if (vtext) vtext.textContent = aiVerdict;
 
     // Title
-    document.getElementById('calcResultTitle').textContent =
+    const titleEl = document.getElementById('calcResultTitle');
+    if (titleEl) titleEl.textContent =
       pair + ' · ' + calcDir + ' · ' + grade + ' · ' + dispScore.toFixed(0) + '%';
 
     // Stats
@@ -9232,7 +9230,7 @@ function getLocalDateKey(dateObj) {
     var wrap = document.getElementById('newsFilterWrap');
     if (wrap) wrap.innerHTML = rfxNewsFilterHtml(pair);
     var cache = _newsCache[pair];
-    if (!cache || (Date.now() - cache.ts) > 15 * 60 * 1000) rfxCheckNews(pair);
+    if (!cache || (Date.now() - cache.ts) > 15 * 60 * 1000) rfxCheckNews(pair, true);
     var htfCache = _htfCache[pair];
     if (!htfCache || (Date.now() - htfCache.ts) > 5 * 60 * 1000) rfxFetchHTFDirection(pair);
   }
@@ -9281,7 +9279,7 @@ function getLocalDateKey(dateObj) {
 <script src="rfx_auth.js"></script>
 <script src="rfx_boosters.js"></script>
 <script src="rfx_auto.js"></script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a256b3301d53abab',t:'MTc4NTc3NDU1Mw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a256ea958eecdb9f',t:'MTc4NTc3NjgyMg=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
 
 <!-- PERFORMANCE METRICS MODAL -->
