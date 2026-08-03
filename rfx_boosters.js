@@ -1116,7 +1116,7 @@ function updateLastTradeTimer() {
   var mins = Math.floor((diffMs % 3600000) / 60000);
   var timeStr = hours > 0 ? hours + 'h ' + mins + 'm' : mins + 'm';
 
-  el.innerHTML = '⏱ Last trade: <span class="rfx-ltt-val">' + timeStr + ' ago</span>';
+  el.innerHTML = '<span style="font-size:11px;color:rgba(255,255,255,.4);">Last trade: <span class="rfx-ltt-val" style="color:var(--green);font-weight:700;">' + timeStr + ' ago</span></span>';
 }
 
 // ══════════════════════════════════════════════════════════════════
