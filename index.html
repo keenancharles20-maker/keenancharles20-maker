@@ -3978,6 +3978,7 @@ That's a lifestyle, not a strategy.</div>
     </div>
     <div style="display:flex;gap:10px;align-items:center;">
       <div id="journalEntryCount" style="font-size:11px;color:rgba(255,255,255,.35);"></div>
+      <button style="font-size:11px;padding:6px 12px;background:rgba(219,228,76,.1);border:1px solid rgba(219,228,76,.3);border-radius:999px;color:#DBE64C;cursor:pointer;" onclick="jRepairScores()" type="button" title="Fix 0% scores on auto-logged trades">🔧 Fix Scores</button>
       <button class="journal-panel-close" onclick="hideJournalPanel()" type="button">✕ Close</button>
     </div>
   </div>
@@ -5403,6 +5404,44 @@ function getLocalDateKey(dateObj) {
     jSaveEntries(jGetEntries().filter(function(e) { return e.id !== id; }));
     jRenderEntries(_jCurrentFilter);
   }
+
+  // ── Repair 0% scores on auto-logged trades ──────────────────
+  window.jRepairScores = function() {
+    var entries = jGetEntries();
+    var broken = entries.filter(function(e) {
+      return e.type === 'trade' && (!e.score || e.score === 0 || e.score === '0');
+    });
+    
+    if (broken.length === 0) {
+      rfxShowToast('No broken scores found', 'ok');
+      return;
+    }
+    
+    var fixes = {};
+    var promptMsg = broken.length + ' entries have 0% score.\n\nEnter scores (comma-separated, in order):\n';
+    broken.forEach(function(e, i) {
+      promptMsg += (i+1) + '. ' + (e.pair||'?') + ' ' + (e.direction||'?') + ' @ ' + (e.entryPrice||'—') + '\n';
+    });
+    promptMsg += '\nExample: 68, 72, 65';
+    
+    var input = prompt(promptMsg);
+    if (!input) return;
+    
+    var scores = input.split(',').map(function(s) { return parseInt(s.trim()); }).filter(function(n) { return !isNaN(n); });
+    
+    if (scores.length !== broken.length) {
+      rfxShowToast('Expected ' + broken.length + ' scores, got ' + scores.length, 'warn');
+      return;
+    }
+    
+    broken.forEach(function(e, i) {
+      e.score = scores[i];
+    });
+    
+    jSaveEntries(entries);
+    jRenderEntries(_jCurrentFilter);
+    rfxShowToast('✅ Fixed ' + scores.length + ' scores', 'ok');
+  };
 
   function jRenderEntries(filter, btn) {
     _jCurrentFilter = filter;
@@ -7238,6 +7277,28 @@ function getLocalDateKey(dateObj) {
 
       // Detect setup type from calculator if same pair is active
       const selPair = (safeEl('c-pair') || {}).value;
+
+      // ── Score resolution (try multiple sources in order) ──
+      // 1. Current calculator score (if user just pasted from Pine)
+      // 2. Last rfxCalc score (tracked globally)
+      // 3. Try running rfxCalc now if calculator has entry data
+      // 4. null if nothing found
+      function resolveScore() {
+        var v = (safeEl('c-score') || {}).value;
+        if (v && parseInt(v) > 0) return parseInt(v);
+        if (window._rfxLastScore && window._rfxLastScore > 0) return window._rfxLastScore;
+        // Try triggering a calc if we have entry/high/low
+        var entry = (safeEl('c-entry') || {}).value;
+        var high  = (safeEl('c-high')  || {}).value;
+        var low   = (safeEl('c-low')   || {}).value;
+        if (entry && high && low && typeof rfxCalc === 'function') {
+          try { rfxCalc(); } catch(e) {}
+          var v2 = (safeEl('c-score') || {}).value;
+          if (v2 && parseInt(v2) > 0) return parseInt(v2);
+        }
+        return null;
+      }
+
       const autoEntry = {
         id:             Date.now(),
         timestamp:      now.getTime(),
@@ -7255,13 +7316,7 @@ function getLocalDateKey(dateObj) {
         units:          units,
         outcome:        'OPEN',
         pnl:            0,
-        score:          (function() {
-          var v = (safeEl('c-score') || {}).value;
-          if (v && parseInt(v) > 0) return parseInt(v);
-          // Fallback: use last calc score, or score from recent bridge paste
-          if (window._rfxLastScore && window._rfxLastScore > 0) return window._rfxLastScore;
-          return null;
-        })(),
+        score:          resolveScore(),
         notes:          'Auto-logged: ' + pair + ' ' + dir + ' @ ' + price.toFixed(pair === 'USDJPY' ? 3 : 5),
         tags:           ['auto-logged'],
         oandaTradeID:   tradeID,
@@ -9278,7 +9333,7 @@ function getLocalDateKey(dateObj) {
 </script>
 <script src="rfx_boosters.js"></script>
 <script src="rfx_auto.js"></script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a25703c8abecdca4',t:'MTc4NTc3Nzg1NA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a25cefb36b383f0f',t:'MTc4NTgzOTk0Ng=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
 
 <!-- PERFORMANCE METRICS MODAL -->
