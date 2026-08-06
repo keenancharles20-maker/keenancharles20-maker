@@ -6,6 +6,7 @@
 <title>Red Forest FX — Concept 5 Design</title>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link rel="stylesheet" href="rfx_boosters.css">
 <link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -3299,6 +3300,69 @@
 </div>
 </div>
 
+<!-- MONTE CARLO SIMULATOR MODAL (overlay) -->
+<div class="rfx-modal-overlay" id="monteCarloModal" style="display:none;" onclick="if(event.target===this)closeMonteCarloModal()">
+  <div class="rfx-modal" style="max-width: 650px;">
+    <div class="rfx-modal-head">
+      <div class="rfx-modal-title">🎲 Monte Carlo Risk Simulator</div>
+      <button class="rfx-modal-close" onclick="closeMonteCarloModal()" type="button">✕</button>
+    </div>
+    <div class="rfx-modal-body" style="gap: 16px; overflow-y: auto; max-height: 80vh; padding: 20px 24px;">
+      <p style="font-size: 13px; color: var(--muted); line-height: 1.6;">
+        Simulate **1,000 random trades** (10 independent paths of 200 trades each) based on your metrics to visualize probability of drawdown and account growth. This mathematically demonstrates how a strict R:R prevents ruin!
+      </p>
+      
+      <!-- Input Controls -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 8px;">
+        <div class="rfx-modal-field">
+          <label class="rfx-modal-label">Starting Balance ($)</label>
+          <input type="number" id="mc-balance" class="rfx-modal-input" value="10000" step="100">
+        </div>
+        <div class="rfx-modal-field">
+          <label class="rfx-modal-label">Risk Per Trade (%)</label>
+          <input type="number" id="mc-risk" class="rfx-modal-input" value="1.0" step="0.1">
+        </div>
+        <div class="rfx-modal-field">
+          <label class="rfx-modal-label">Win Rate (%)</label>
+          <input type="number" id="mc-winrate" class="rfx-modal-input" value="40" min="1" max="99">
+        </div>
+        <div class="rfx-modal-field">
+          <label class="rfx-modal-label">Risk-to-Reward (1:R)</label>
+          <input type="number" id="mc-rr" class="rfx-modal-input" value="3.0" step="0.5">
+        </div>
+      </div>
+      
+      <button class="rfx-modal-btn" onclick="runMonteCarloSimulation()" type="button" style="width: 100%; margin-top: 8px;">⚡ Run 1,000 Trade Simulation</button>
+      
+      <!-- Simulator Results (hidden initially) -->
+      <div id="mc-results" style="display: none; flex-direction: column; gap: 14px; margin-top: 16px;">
+        <!-- KPI Results Grid -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+          <div style="background: rgba(2,223,130,0.06); border: 1px solid rgba(2,223,130,0.18); border-radius: 10px; padding: 12px; text-align: center;">
+            <div style="font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;">Survival Prob.</div>
+            <div id="mc-survival" style="font-size: 22px; font-weight: 800; color: var(--green);">0%</div>
+          </div>
+          <div style="background: rgba(255,77,77,0.06); border: 1px solid rgba(255,77,77,0.18); border-radius: 10px; padding: 12px; text-align: center;">
+            <div style="font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;">Peak Drawdown</div>
+            <div id="mc-peak-dd" style="font-size: 22px; font-weight: 800; color: var(--red);">0%</div>
+          </div>
+          <div style="background: rgba(219,228,76,0.06); border: 1px solid rgba(219,228,76,0.18); border-radius: 10px; padding: 12px; text-align: center;">
+            <div style="font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;">Median Ending</div>
+            <div id="mc-median-end" style="font-size: 22px; font-weight: 800; color: var(--yellow);">$0</div>
+          </div>
+        </div>
+
+        <div class="rfx-modal-summary" id="mc-summary-text" style="font-size: 11px; line-height: 1.6;"></div>
+
+        <!-- Chart container -->
+        <div style="width: 100%; height: 240px; background: rgba(0,0,0,0.5); border: 1px solid var(--border); border-radius: 12px; padding: 10px; position: relative;">
+          <canvas id="mcChart" style="width: 100%; height: 100%;"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- SAVE TRADE MODAL -->
 <div class="rfx-modal-overlay" id="saveTradeModal" style="display:none;" onclick="if(event.target===this)rfxCloseModal()">
   <div class="rfx-modal">
@@ -4161,10 +4225,9 @@ That's a lifestyle, not a strategy.</div>
     </div>
 
     <!-- Equity Curve -->
-    <div class="stats-sec-label">Equity Curve</div>
-    <div id="stEquityCurveContainer">
-      <svg id="stEquitySvg" width="100%" height="100%" preserveAspectRatio="none"></svg>
-      <div id="stEquityTooltip"></div>
+    <div class="stats-sec-label">Equity Curve &amp; Drawdown Chart</div>
+    <div id="stEquityCurveContainer" style="height: 220px;">
+      <canvas id="stEquityChart" style="width: 100%; height: 100%;"></canvas>
     </div>
 
     <!-- Five Numbers -->
@@ -4198,6 +4261,7 @@ That's a lifestyle, not a strategy.</div>
     <!-- Trade History -->
     <div class="stats-sec-label">Trade History</div>
     <div class="stats-btn-row">
+      <button class="stats-btn green" onclick="openMonteCarloModal()" type="button">🎲 Monte Carlo Sim</button>
       <button class="stats-btn green" onclick="stExportJSON()" type="button">📤 Backup JSON</button>
       <label class="stats-btn green" style="cursor:none;">📥 Restore<input type="file" accept=".json" onchange="stImportJSON(event)" style="display:none"></label>
       <button class="stats-btn green" onclick="stExportCSV()" type="button">📊 CSV Export</button>
@@ -4452,67 +4516,145 @@ That's a lifestyle, not a strategy.</div>
   function stDrawEquity() {
     const trades  = rfxGetTrades();
     const closed  = trades.filter(t => t.outcome && t.outcome !== 'OPEN').reverse();
-    const svg     = document.getElementById('stEquitySvg');
-    if (!svg) return;
+    const canvas  = document.getElementById('stEquityChart');
+    if (!canvas) return;
 
     if (closed.length === 0) {
-      svg.innerHTML = '<text x="50%" y="50%" fill="rgba(255,255,255,.3)" font-size="12" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">Log closed trades to see equity curve</text>';
+      // Clear chart if no trades
+      if (window.rfxEquityChart) {
+        window.rfxEquityChart.destroy();
+        window.rfxEquityChart = null;
+      }
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'rgba(255,255,255,.3)';
+      ctx.font = '12px Manrope, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('Log closed trades to see equity curve', canvas.width / 2, canvas.height / 2);
       return;
     }
 
-    // Start equity curve from OANDA balance if available
+    // Start equity curve from OANDA balance or current balance if available
     let bal = _oandaBalance !== null ? _oandaBalance : ST_START_BALANCE;
     const startBal = bal;
-    const pts = [{x:0, y:bal, trade:null}];
-    closed.forEach((t,i) => { bal += Number(t.pnl)||0; pts.push({x:i+1, y:bal, trade:t}); });
+    const pts = [{ x: 0, y: bal, trade: null }];
+    closed.forEach((t, i) => {
+      bal += Number(t.pnl) || 0;
+      pts.push({ x: i + 1, y: bal, trade: t });
+    });
 
-    const container = document.getElementById('stEquityCurveContainer');
-    const w = container.clientWidth - 20 || 600;
-    const h = container.clientHeight - 20 || 160;
+    // Calculate drawdown
+    let peak = startBal;
+    const dds = [];
+    pts.forEach(p => {
+      if (p.y > peak) peak = p.y;
+      const dd = peak > 0 ? ((peak - p.y) / peak) * 100 : 0;
+      dds.push(dd);
+    });
 
-    const ys    = pts.map(p=>p.y);
-    const minY  = Math.min(...ys) - (Math.max(...ys)-Math.min(...ys))*0.15 - 5;
-    const maxY  = Math.max(...ys) + (Math.max(...ys)-Math.min(...ys))*0.15 + 5;
-    const scX   = w / (pts.length-1||1);
-    const scY   = h / (maxY - minY || 1);
-    const color = bal > startBal ? '#02DF82' : bal === startBal ? '#DBE64C' : '#FF4D4D';
+    // Destroy existing chart to avoid layout issues
+    if (window.rfxEquityChart) {
+      window.rfxEquityChart.destroy();
+    }
 
-    const path  = pts.map((p,i) => (i===0?'M':'L') + (p.x*scX).toFixed(1) + ',' + (h-(p.y-minY)*scY).toFixed(1)).join(' ');
-    const area  = path + ' L'+w+','+h+' L0,'+h+' Z';
+    const labels = pts.map((p, i) => i === 0 ? 'Start' : `${p.trade.pair} (${p.trade.outcome})`);
+    const balanceData = pts.map(p => p.y);
+    const drawdownData = dds.map(d => -d); // negative drawdown
 
-    svg.innerHTML = `
-      <defs>
-        <linearGradient id="stGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="${color}" stop-opacity="0.25"/>
-          <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
-        </linearGradient>
-      </defs>
-      <path d="${area}" fill="url(#stGrad)"/>
-      <path d="${path}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round"/>
-    `;
-
-    const tip = document.getElementById('stEquityTooltip');
-    pts.forEach((p,i) => {
-      const cx = (p.x*scX).toFixed(1), cy = (h-(p.y-minY)*scY).toFixed(1);
-      const c  = document.createElementNS('http://www.w3.org/2000/svg','circle');
-      c.setAttribute('cx', cx); c.setAttribute('cy', cy);
-      c.setAttribute('r','4'); c.setAttribute('fill','#0A140A');
-      c.setAttribute('stroke', color); c.setAttribute('stroke-width','2');
-      c.style.cursor = 'pointer';
-      c.addEventListener('mouseenter', () => {
-        c.setAttribute('r','6'); c.setAttribute('fill', color);
-        tip.style.display = 'block';
-        tip.innerHTML = p.trade
-          ? `<strong>${p.trade.pair} ${p.trade.direction==='LONG'?'🟢':'🔴'}</strong><br>Outcome: ${p.trade.outcome}<br>P&L: $${Number(p.trade.pnl).toFixed(2)}<br>Bal: $${p.y.toFixed(2)}`
-          : `<strong>Start</strong><br>Balance: $${p.y.toFixed(2)}`;
-        tip.style.left = Math.min(parseInt(cx)+10, w-130)+'px';
-        tip.style.top  = Math.max(parseInt(cy)-60, 0)+'px';
-      });
-      c.addEventListener('mouseleave', () => {
-        c.setAttribute('r','4'); c.setAttribute('fill','#0A140A');
-        tip.style.display = 'none';
-      });
-      svg.appendChild(c);
+    const ctx = canvas.getContext('2d');
+    window.rfxEquityChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Account Balance / NAV ($)',
+            data: balanceData,
+            borderColor: '#02DF82', // W_GREEN (neon green)
+            backgroundColor: 'rgba(2, 223, 130, 0.05)',
+            borderWidth: 2.5,
+            tension: 0.25,
+            pointBackgroundColor: '#02DF82',
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            yAxisID: 'y-balance',
+            fill: true
+          },
+          {
+            label: 'Running Drawdown (%)',
+            data: drawdownData,
+            borderColor: '#FF4D4D', // W_RED
+            backgroundColor: 'rgba(255, 77, 77, 0.12)',
+            borderWidth: 1.5,
+            tension: 0.2,
+            pointBackgroundColor: '#FF4D4D',
+            pointRadius: 3,
+            yAxisID: 'y-drawdown',
+            fill: true
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            labels: { color: 'rgba(255, 255, 255, 0.7)', font: { family: 'Manrope', size: 10 } }
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+            backgroundColor: 'rgba(10, 20, 10, 0.95)',
+            borderColor: 'rgba(2, 223, 130, 0.2)',
+            borderWidth: 1,
+            titleColor: '#ffffff',
+            bodyColor: 'rgba(255, 255, 255, 0.85)',
+            titleFont: { family: 'Manrope', weight: 'bold' },
+            bodyFont: { family: 'Manrope' },
+            callbacks: {
+              label: function(context) {
+                const datasetLabel = context.dataset.label || '';
+                const value = context.parsed.y;
+                if (context.datasetIndex === 0) {
+                  return `${datasetLabel}: $${value.toFixed(2)}`;
+                } else {
+                  return `${datasetLabel}: ${value.toFixed(2)}%`;
+                }
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: 'rgba(2, 223, 130, 0.04)' },
+            ticks: { color: 'rgba(255, 255, 255, 0.55)', font: { family: 'Manrope', size: 9 } }
+          },
+          'y-balance': {
+            type: 'linear',
+            position: 'left',
+            grid: { color: 'rgba(2, 223, 130, 0.08)' },
+            ticks: { 
+              color: '#02DF82', 
+              font: { family: 'Manrope', size: 9 },
+              callback: v => '$' + v.toFixed(0)
+            }
+          },
+          'y-drawdown': {
+            type: 'linear',
+            position: 'right',
+            grid: { drawOnChartArea: false },
+            ticks: { 
+              color: '#FF4D4D', 
+              font: { family: 'Manrope', size: 9 },
+              callback: v => v.toFixed(0) + '%'
+            },
+            suggestedMin: -10,
+            suggestedMax: 0
+          }
+        }
+      }
     });
   }
 
@@ -9328,12 +9470,384 @@ function getLocalDateKey(dateObj) {
     }
   });
 
+  // ══════════════════════════════════════════════════════════════════
+  // 🎲 MONTE CARLO RISK SIMULATOR
+  // ══════════════════════════════════════════════════════════════════
+  
+  window.openMonteCarloModal = function() {
+    // Populate with current calculator values if available
+    const balInput = document.getElementById('c-balance');
+    const riskInput = document.getElementById('c-risk-pct');
+    const winrateInput = document.getElementById('mc-winrate');
+    const rrInput = document.getElementById('c-minrr');
+
+    if (balInput && balInput.value) document.getElementById('mc-balance').value = parseFloat(balInput.value);
+    if (riskInput && riskInput.value) document.getElementById('mc-risk').value = parseFloat(riskInput.value);
+    
+    // Auto-calculate winrate from trade history if available
+    try {
+      const trades = rfxGetTrades();
+      const closed = trades.filter(t => t.outcome !== 'OPEN');
+      const wins = closed.filter(t => t.outcome === 'WIN').length;
+      if (closed.length >= 5) {
+        document.getElementById('mc-winrate').value = Math.round((wins / closed.length) * 100);
+      }
+    } catch(e) {}
+
+    // Auto-set RR if available in calculator
+    const calcRrVal = document.getElementById('r-rr')?.textContent;
+    if (calcRrVal && calcRrVal.includes('1:')) {
+      const parsedRr = parseFloat(calcRrVal.replace('1:', ''));
+      if (!isNaN(parsedRr)) document.getElementById('mc-rr').value = parsedRr.toFixed(1);
+    } else if (rrInput && rrInput.value) {
+      document.getElementById('mc-rr').value = parseFloat(rrInput.value).toFixed(1);
+    }
+
+    document.getElementById('monteCarloModal').style.display = 'flex';
+    // Run simulation immediately upon opening
+    window.runMonteCarloSimulation();
+  };
+
+  window.closeMonteCarloModal = function() {
+    document.getElementById('monteCarloModal').style.display = 'none';
+  };
+
+  window.runMonteCarloSimulation = function() {
+    const startBal = parseFloat(document.getElementById('mc-balance').value) || 10000;
+    const riskPct = parseFloat(document.getElementById('mc-risk').value) || 1.0;
+    const winRate = parseFloat(document.getElementById('mc-winrate').value) || 40;
+    const rrRatio = parseFloat(document.getElementById('mc-rr').value) || 3.0;
+
+    const numTrades = 200; // Realistic active career window
+    const numPaths = 10;   // 10 independent lines
+    const pathsData = [];
+    let ruinedPaths = 0;
+    let maxPeakDD = 0;
+    const finalBalances = [];
+
+    // Run 10 simulations
+    for (let path = 0; path < numPaths; path++) {
+      let bal = startBal;
+      let peak = startBal;
+      let pathPeakDD = 0;
+      let isRuined = false;
+      const pathHistory = [bal];
+
+      for (let t = 0; t < numTrades; t++) {
+        const rand = Math.random() * 100;
+        const riskAmt = bal * (riskPct / 100);
+
+        if (rand < winRate) {
+          // WIN
+          bal += riskAmt * rrRatio;
+        } else {
+          // LOSS
+          bal -= riskAmt;
+        }
+
+        if (bal > peak) peak = bal;
+        const dd = peak > 0 ? ((peak - bal) / peak) * 100 : 0;
+        if (dd > pathPeakDD) pathPeakDD = dd;
+        if (dd > maxPeakDD) maxPeakDD = dd;
+
+        // Ruin condition: lose 50% of starting capital
+        if (bal <= startBal * 0.5) {
+          isRuined = true;
+        }
+
+        pathHistory.push(Math.max(0, bal));
+      }
+
+      if (isRuined) ruinedPaths++;
+      finalBalances.push(bal);
+      pathsData.push(pathHistory);
+    }
+
+    // Sort final balances to compute median
+    finalBalances.sort((a, b) => a - b);
+    const medianEndingBalance = finalBalances[Math.floor(numPaths / 2)];
+    const survivalProbability = ((numPaths - ruinedPaths) / numPaths) * 100;
+
+    // Display KPI Metrics
+    document.getElementById('mc-survival').textContent = survivalProbability.toFixed(0) + '%';
+    document.getElementById('mc-survival').style.color = survivalProbability >= 90 ? 'var(--green)' : survivalProbability >= 60 ? 'var(--yellow)' : 'var(--red)';
+    document.getElementById('mc-peak-dd').textContent = maxPeakDD.toFixed(1) + '%';
+    document.getElementById('mc-peak-dd').style.color = maxPeakDD <= 25 ? 'var(--green)' : maxPeakDD <= 45 ? 'var(--yellow)' : 'var(--red)';
+    document.getElementById('mc-median-end').textContent = '$' + medianEndingBalance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+    // Detailed summary paragraph
+    const pnlMultiplier = (medianEndingBalance / startBal).toFixed(1);
+    let summaryText = `In <strong>${numPaths} independent paths</strong> over <strong>${numTrades} trades</strong>, your median ending balance is <strong>$${medianEndingBalance.toLocaleString(undefined, {maximumFractionDigits:2})}</strong> (a <strong>${pnlMultiplier}x</strong> multiple). `;
+    
+    if (rrRatio < 2.0 && winRate < 45) {
+      summaryText += `⚠️ <strong>High Risk of Ruin Detected!</strong> With a low R:R of 1:${rrRatio.toFixed(1)} and a ${winRate}% win rate, your edge is negative. Expectancy is mathematically bound to wipe out the account over time.`;
+    } else {
+      summaryText += `🟢 <strong>Capital Protected!</strong> Because you kept a strict R:R ratio of <strong>1:${rrRatio.toFixed(1)}</strong>, you survived with a ${survivalProbability}% survival probability, even through randomized streaks of losses! This proves that keeping a solid R:R makes your account mathematically bulletproof.`;
+    }
+    document.getElementById('mc-summary-text').innerHTML = summaryText;
+
+    // Render Chart.js Multi-line chart
+    const mcCanvas = document.getElementById('mcChart');
+    if (window.rfxMcChart) {
+      window.rfxMcChart.destroy();
+    }
+
+    const datasets = pathsData.map((data, pathIdx) => {
+      // Different neon-themed gradients for lanes
+      const colors = ['#02DF82', '#DBE64C', '#4ECBA0', '#FF8D6B', '#04F090', '#32CD32', '#00F5FF', '#FFD700', '#FF69B4', '#98F5FF'];
+      return {
+        label: `Path ${pathIdx + 1}`,
+        data: data,
+        borderColor: colors[pathIdx % colors.length],
+        borderWidth: 1.2,
+        pointRadius: 0,
+        fill: false,
+        tension: 0.1
+      };
+    });
+
+    const labels = Array.from({length: numTrades + 1}, (_, i) => i);
+    const mcCtx = mcCanvas.getContext('2d');
+    
+    window.rfxMcChart = new Chart(mcCtx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: datasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false } // Hide legend to keep it clean
+        },
+        scales: {
+          x: {
+            grid: { color: 'rgba(2, 223, 130, 0.03)' },
+            ticks: { color: 'rgba(255, 255, 255, 0.4)', font: { family: 'Manrope', size: 9 } },
+            title: { display: true, text: 'Trade Count', color: 'rgba(255, 255, 255, 0.4)', font: { family: 'Manrope', size: 10 } }
+          },
+          y: {
+            grid: { color: 'rgba(2, 223, 130, 0.07)' },
+            ticks: { 
+              color: 'rgba(255, 255, 255, 0.55)', 
+              font: { family: 'Manrope', size: 9 },
+              callback: v => '$' + v.toLocaleString()
+            },
+            title: { display: true, text: 'Account Balance', color: 'rgba(255, 255, 255, 0.4)', font: { family: 'Manrope', size: 10 } }
+          }
+        }
+      }
+    });
+
+    document.getElementById('mc-results').style.display = 'flex';
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  // 🖼️ DRAG-AND-DROP SCREENSHOT OCR & SMART PARSER
+  // ══════════════════════════════════════════════════════════════════
+  
+  // Create Drag and Drop fullscreen overlay
+  const dragOverlay = document.createElement('div');
+  dragOverlay.id = 'rfxDragOverlay';
+  dragOverlay.style.cssText = 'position:fixed;inset:0;background:rgba(2,223,130,0.1);backdrop-filter:blur(6px);border:3px dashed var(--green);z-index:999999;display:none;align-items:center;justify-content:center;pointer-events:none;transition:all 0.2s;';
+  dragOverlay.innerHTML = `
+    <div style="text-align:center;color:#fff;background:var(--card);border:1px solid var(--border);padding:32px 48px;border-radius:20px;box-shadow:0 0 50px rgba(2,223,130,0.25);">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:16px;">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+      <h2 style="font-size:20px;font-weight:800;letter-spacing:-0.02em;margin-bottom:8px;">Drop TradingView Screenshot</h2>
+      <p style="font-size:12px;color:var(--muted);">Tesseract OCR will instantly extract currency pair, direction, Entry, SL and TP.</p>
+    </div>
+  `;
+  document.body.appendChild(dragOverlay);
+
+  // Drag and drop event listeners on body
+  window.addEventListener('dragenter', function(e) {
+    e.preventDefault();
+    dragOverlay.style.display = 'flex';
+  });
+
+  window.addEventListener('dragover', function(e) {
+    e.preventDefault();
+  });
+
+  window.addEventListener('dragleave', function(e) {
+    // Hide overlay only if we leave the window
+    if (e.clientX <= 0 || e.clientY <= 0 || e.clientX >= window.innerWidth || e.clientY >= window.innerHeight) {
+      dragOverlay.style.display = 'none';
+    }
+  });
+
+  window.addEventListener('drop', function(e) {
+    e.preventDefault();
+    dragOverlay.style.display = 'none';
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      const file = files[0];
+      if (file.type.startsWith('image/')) {
+        rfxProcessDroppedImage(file);
+      } else {
+        rfxShowToast('⚠ Please drop a valid image file.', 'warn');
+      }
+    }
+  });
+
+  // Smart screenshot processor using our sorting heuristic
+  async function rfxProcessDroppedImage(file) {
+    const url = URL.createObjectURL(file);
+    
+    // Smooth scroll to calculator so user sees the auto-fill action
+    const calcSection = document.getElementById('calculator');
+    if (calcSection) calcSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // Show image thumbnail inline inside the calculator's paste wrap
+    const preview = document.getElementById('ocrImagePreview');
+    const thumb   = document.getElementById('ocrImageThumb');
+    const status  = document.getElementById('ocrImageStatus');
+    if (preview) preview.style.display = 'block';
+    if (thumb)   thumb.src = url;
+    if (status)  { status.textContent = '⏳ Analyzing Chart Screenshot…'; status.style.color = 'var(--yellow)'; }
+
+    try {
+      const worker = await rfxGetOcrWorker();
+      const result = await worker.recognize(url);
+      const text   = result.data.text || '';
+
+      // Set raw OCR in text area
+      const input = document.getElementById('pinePasteInput');
+      if (input) input.value = text.trim();
+
+      // 1. Identify Currency Pair
+      const pairs = ['GBPUSD','EURUSD','USDJPY','USDCAD','AUDUSD','NZDUSD'];
+      let detectedPair = '';
+      const textUpper = text.toUpperCase();
+      
+      for (const p of pairs) {
+        if (textUpper.includes(p) || textUpper.includes(p.slice(0,3) + '/' + p.slice(3)) || textUpper.includes(p.slice(0,3) + '_' + p.slice(3))) {
+          detectedPair = p;
+          break;
+        }
+      }
+      
+      // Fallback: match any 6 uppercase letters that match our list
+      if (!detectedPair) {
+        const m = textUpper.match(/\b([A-Z]{3})[\/_]?([A-Z]{3})\b/);
+        if (m) {
+          const possible = m[1] + m[2];
+          if (pairs.includes(possible)) detectedPair = possible;
+        }
+      }
+
+      // Default to calculator pair if none detected
+      if (!detectedPair) {
+        detectedPair = document.getElementById('c-pair').value || 'GBPUSD';
+      }
+
+      // 2. Identify Direction Bias (default to LONG if not found)
+      let detectedDir = 'LONG';
+      if (textUpper.includes('SHORT') || textUpper.includes('SELL') || textUpper.includes('DOWN') || textUpper.includes('BEAR')) {
+        detectedDir = 'SHORT';
+      } else if (textUpper.includes('LONG') || textUpper.includes('BUY') || textUpper.includes('UP') || textUpper.includes('BULL')) {
+        detectedDir = 'LONG';
+      }
+
+      // 3. Extract and filter numeric prices
+      const numMatches = text.match(/\b\d+\.\d+\b/g) || [];
+      const numbers = numMatches.map(parseFloat);
+      const isJpy = detectedPair === 'USDJPY';
+      
+      const filteredPrices = numbers.filter(n => {
+        if (isJpy) {
+          return n >= 100 && n <= 170; // USDJPY scale
+        } else {
+          return n >= 0.5 && n <= 2.2;  // Regular Forex scale
+        }
+      });
+
+      // De-duplicate within minor tolerance
+      const uniquePrices = [];
+      filteredPrices.forEach(n => {
+        if (!uniquePrices.some(x => Math.abs(x - n) < 0.00015)) {
+          uniquePrices.push(n);
+        }
+      });
+
+      if (uniquePrices.length >= 3) {
+        // Sort ascending
+        uniquePrices.sort((a, b) => a - b);
+        
+        let sl, entry, tp;
+        if (detectedDir === 'LONG') {
+          sl = uniquePrices[0];
+          entry = uniquePrices[1];
+          tp = uniquePrices[2];
+        } else {
+          tp = uniquePrices[0];
+          entry = uniquePrices[1];
+          sl = uniquePrices[2];
+        }
+
+        // Auto-fill calculator fields
+        document.getElementById('c-pair').value = detectedPair;
+        // Trigger pair onchange profile loader
+        onPairChange();
+
+        // Check if elements exist and write values
+        const entryEl = document.getElementById('c-entry');
+        const slEl = document.getElementById('c-sl');
+        const tpEl = document.getElementById('c-tp');
+        
+        if (entryEl) { entryEl.value = entry; entryEl.dataset.manualEntry = '1'; }
+        if (slEl) { slEl.value = sl; slEl.dataset.manualSl = '1'; }
+        if (tpEl) { tpEl.value = tp; tpEl.dataset.manualTp = '1'; }
+
+        // Also set score if found, or default
+        const scoreMatch = textUpper.match(/SCORE\s*[:=]?\s*(\d{2,3})/i) || textUpper.match(/\b(\d{2})%/);
+        const scoreEl = document.getElementById('c-score');
+        if (scoreEl) {
+          if (scoreMatch) scoreEl.value = parseInt(scoreMatch[1]);
+          else scoreEl.value = '75'; // default good score
+        }
+
+        // Re-calculate
+        setDir(detectedDir); // updates global direction state
+        rfxCalc();
+
+        if (status) {
+          status.textContent = `✓ Auto-filled: ${detectedPair} ${detectedDir} | Entry: ${entry.toFixed(isJpy?3:5)} | SL: ${sl.toFixed(isJpy?3:5)} | TP: ${tp.toFixed(isJpy?3:5)}`;
+          status.style.color = 'var(--green)';
+        }
+        rfxShowToast(`🖼️ Screenshot Parsed: ${detectedPair} ${detectedDir} Filled!`, 'ok');
+
+      } else {
+        if (status) {
+          status.textContent = '⚠ Could not isolate Entry/SL/TP automatically — pasted raw text into input.';
+          status.style.color = 'var(--yellow)';
+        }
+        rfxShowToast('⚠ Prices not recognized. Pasted raw text instead.', 'warn');
+      }
+
+    } catch (e) {
+      if (status) { status.textContent = '✗ OCR Processing failed: ' + e.message; status.style.color = 'var(--red)'; }
+      console.warn("Screenshot OCR Error:", e);
+    }
+  }
+
+  // Fallback: also run on window load (for cases where auth is already done)
+  window.addEventListener('load', function() {
+    if (!window._aiInitDone) {
+      window.rfxOnConfigReady();
+    }
+  });
+
 
 
 </script>
 <script src="rfx_boosters.js"></script>
 <script src="rfx_auto.js"></script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a25cefb36b383f0f',t:'MTc4NTgzOTk0Ng=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a25cefb36b383f0f',t:'MTc4NTgzOTk0Ng=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a26d54f77b9cbe60',t:'MTc4NjAxMTg2Ng=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
 
 <!-- PERFORMANCE METRICS MODAL -->
