@@ -78,24 +78,6 @@
     font-size: 16px; font-weight: 800; letter-spacing: -0.02em;
   }
   .nav-logo-mark {
-  }
-  body:hover #c-dot { width: 6px; height: 6px; }
-  .hoverable:hover ~ #c-ring { width: 56px; height: 56px; }
-
-  /* ─── TOPBAR ─────────────────────────────────────────────────── */
-  .nav {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0 48px; height: 68px;
-    background: rgba(0,0,0,0.85);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border);
-  }
-  .nav-logo {
-    display: flex; align-items: center; gap: 10px;
-    font-size: 16px; font-weight: 800; letter-spacing: -0.02em;
-  }
-  .nav-logo-mark {
     width: 32px; height: 32px; border-radius: 8px;
     background: linear-gradient(135deg, var(--green) 0%, var(--yellow) 100%);
     display: flex; align-items: center; justify-content: center;
@@ -1070,12 +1052,16 @@
     background: rgba(0,0,0,.82); backdrop-filter: blur(8px);
     display: flex; align-items: center; justify-content: center;
     padding: 20px;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
   }
   .rfx-modal {
     background: #0A140A; border: 1px solid rgba(2,223,130,.22);
     border-radius: 20px; width: 100%; max-width: 520px;
     box-shadow: 0 24px 64px rgba(0,0,0,.7), 0 0 40px rgba(2,223,130,.08);
     display: flex; flex-direction: column; overflow: hidden;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
   }
   .rfx-modal-head {
     display: flex; align-items: center; justify-content: space-between;
@@ -1135,6 +1121,8 @@
     background: rgba(0,0,0,.93); backdrop-filter: blur(10px);
     display: none; flex-direction: column;
     overflow-y: auto;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
   }
   .stats-overlay.open { display: flex; }
   .stats-header {
@@ -9668,22 +9656,28 @@ function getLocalDateKey(dateObj) {
   // Create Drag and Drop fullscreen overlay
   const dragOverlay = document.createElement('div');
   dragOverlay.id = 'rfxDragOverlay';
-  dragOverlay.style.cssText = 'position:fixed;inset:0;background:rgba(2,223,130,0.1);backdrop-filter:blur(6px);border:3px dashed var(--green);z-index:999999;display:none;align-items:center;justify-content:center;pointer-events:none;transition:all 0.2s;';
+  dragOverlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,10,0,0.82);backdrop-filter:blur(10px);border:3px dashed #02DF82;box-shadow:inset 0 0 120px rgba(2,223,130,0.18);z-index:999999;display:none;align-items:center;justify-content:center;pointer-events:none;transition:opacity 0.25s ease-in-out;opacity:0;';
   dragOverlay.innerHTML = `
-    <div style="text-align:center;color:#fff;background:var(--card);border:1px solid var(--border);padding:32px 48px;border-radius:20px;box-shadow:0 0 50px rgba(2,223,130,0.25);">
-      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:16px;">
+    <div style="text-align:center;color:#fff;background:#0A140A;border:1px solid rgba(2,223,130,0.25);padding:40px 56px;border-radius:24px;box-shadow:0 0 60px rgba(2,223,130,0.3);">
+      <svg width="72" height="74" viewBox="0 0 24 24" fill="none" stroke="#02DF82" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:20px;filter:drop-shadow(0 0 8px rgba(2,223,130,0.4));">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
       </svg>
-      <h2 style="font-size:20px;font-weight:800;letter-spacing:-0.02em;margin-bottom:8px;">Drop TradingView Screenshot</h2>
-      <p style="font-size:12px;color:var(--muted);">Tesseract OCR will instantly extract currency pair, direction, Entry, SL and TP.</p>
+      <h2 style="font-size:22px;font-weight:900;letter-spacing:-0.03em;margin-bottom:8px;color:#fff;">Drop TradingView Screenshot</h2>
+      <p style="font-size:12px;color:rgba(255,255,255,0.5);max-width:320px;line-height:1.6;margin:0 auto;">Tesseract OCR will instantly isolate the currency pair, trade bias, Entry, SL and TP.</p>
     </div>
   `;
   document.body.appendChild(dragOverlay);
 
-  // Drag and drop event listeners on body
+  // Drag and drop event listeners on body with counter to avoid flickering on sub-elements
+  let dragCounter = 0;
+  
   window.addEventListener('dragenter', function(e) {
     e.preventDefault();
-    dragOverlay.style.display = 'flex';
+    dragCounter++;
+    if (dragCounter === 1) {
+      dragOverlay.style.display = 'flex';
+      setTimeout(() => { dragOverlay.style.opacity = '1'; }, 10);
+    }
   });
 
   window.addEventListener('dragover', function(e) {
@@ -9691,15 +9685,19 @@ function getLocalDateKey(dateObj) {
   });
 
   window.addEventListener('dragleave', function(e) {
-    // Hide overlay only if we leave the window
-    if (e.clientX <= 0 || e.clientY <= 0 || e.clientX >= window.innerWidth || e.clientY >= window.innerHeight) {
-      dragOverlay.style.display = 'none';
+    e.preventDefault();
+    dragCounter--;
+    if (dragCounter === 0) {
+      dragOverlay.style.opacity = '0';
+      setTimeout(() => { if (dragCounter === 0) dragOverlay.style.display = 'none'; }, 250);
     }
   });
 
   window.addEventListener('drop', function(e) {
     e.preventDefault();
-    dragOverlay.style.display = 'none';
+    dragCounter = 0;
+    dragOverlay.style.opacity = '0';
+    setTimeout(() => { dragOverlay.style.display = 'none'; }, 250);
     
     const files = e.dataTransfer.files;
     if (files.length > 0) {
@@ -9865,7 +9863,7 @@ function getLocalDateKey(dateObj) {
 </script>
 <script src="rfx_boosters.js"></script>
 <script src="rfx_auto.js"></script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a25cefb36b383f0f',t:'MTc4NTgzOTk0Ng=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a26d54f77b9cbe60',t:'MTc4NjAxMTg2Ng=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a25cefb36b383f0f',t:'MTc4NTgzOTk0Ng=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a276e7f8ba3a0c08',t:'MTc4NjExMjI1OQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
 
 <!-- PERFORMANCE METRICS MODAL -->
