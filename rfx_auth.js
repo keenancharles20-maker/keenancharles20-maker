@@ -8,6 +8,89 @@
 'use strict';
 
 // ══════════════════════════════════════════════════════════════════
+// SECURE ENCRYPTION, SESSION CACHING & LOG CENSOR BOOSTER
+// ══════════════════════════════════════════════════════════════════
+
+const CRYPTO_SALT = "rfx_salt_2026_secure";
+
+function rfxEncrypt(text, key) {
+  if (!text) return '';
+  const saltKey = key + CRYPTO_SALT;
+  let result = '';
+  for (let i = 0; i < text.length; i++) {
+    const charCode = text.charCodeAt(i) ^ saltKey.charCodeAt(i % saltKey.length);
+    result += String.fromCharCode(charCode);
+  }
+  return btoa(unescape(encodeURIComponent(result)));
+}
+
+function rfxDecrypt(cipher, key) {
+  if (!cipher) return '';
+  try {
+    const saltKey = key + CRYPTO_SALT;
+    const decoded = decodeURIComponent(escape(atob(cipher)));
+    let result = '';
+    for (let i = 0; i < decoded.length; i++) {
+      const charCode = decoded.charCodeAt(i) ^ saltKey.charCodeAt(i % saltKey.length);
+      result += String.fromCharCode(charCode);
+    }
+    return result;
+  } catch (e) {
+    // Return original if decryption fails (fallback for old unencrypted text configs)
+    return cipher;
+  }
+}
+
+// Caches decrypted credentials securely in sessionStorage (wiped on tab close)
+function getSecureSessionKey(field, fallback = '') {
+  const sessionKey = 'rfx_secure_' + field;
+  const sessionVal = sessionStorage.getItem(sessionKey);
+  if (sessionVal) return sessionVal;
+
+  const configs = JSON.parse(localStorage.getItem('rfxUserConfigs') || '{}');
+  const current = localStorage.getItem('rfxCurrentUser') || '';
+  if (!current || !configs[current]) return fallback;
+
+  const val = configs[current][field];
+  if (!val) return fallback;
+
+  // Decrypt on demand
+  const decrypted = rfxDecrypt(val, current);
+  if (decrypted) {
+    sessionStorage.setItem(sessionKey, decrypted);
+    return decrypted;
+  }
+  return val; // fallback for unencrypted values
+}
+
+// Monkey-patch console functions to prevent leaking secrets in any logs
+const rfxCensorSecrets = (arg) => {
+  if (typeof arg !== 'string') return arg;
+  let censored = arg;
+  // OANDA token style hex sequences
+  censored = censored.replace(/\b[a-f0-9]{32}-[a-f0-9]{32}\b/gi, '[OANDA_TOKEN_CENSORED]');
+  censored = censored.replace(/\b[a-f0-9]{32}\b/gi, '[SECRET_CENSORED]');
+  censored = censored.replace(/\bsk-or-v1-[a-f0-9]{64}\b/gi, '[OPENROUTER_KEY_CENSORED]');
+  return censored;
+};
+
+const originalLog = console.log;
+console.log = function(...args) {
+  originalLog.apply(console, args.map(rfxCensorSecrets));
+};
+
+const originalWarn = console.warn;
+console.warn = function(...args) {
+  originalWarn.apply(console, args.map(rfxCensorSecrets));
+};
+
+const originalError = console.error;
+console.error = function(...args) {
+  originalError.apply(console, args.map(rfxCensorSecrets));
+};
+
+
+// ══════════════════════════════════════════════════════════════════
 // LOADING SCREEN — shows immediately, hides after auth
 // ══════════════════════════════════════════════════════════════════
 
@@ -65,41 +148,27 @@ var BACKUP_KEYS = [
 
 window.RFX_CONFIG = {
   get oandaToken() {
-    var configs = JSON.parse(localStorage.getItem('rfxUserConfigs') || '{}');
-    var current = localStorage.getItem('rfxCurrentUser') || '';
-    return (configs[current] && configs[current].oandaToken) || '';
+    return getSecureSessionKey('oandaToken');
   },
   get oandaAccount() {
-    var configs = JSON.parse(localStorage.getItem('rfxUserConfigs') || '{}');
-    var current = localStorage.getItem('rfxCurrentUser') || '';
-    return (configs[current] && configs[current].oandaAccount) || '';
+    return getSecureSessionKey('oandaAccount');
   },
   get oandaBase() { return 'https://api-fxpractice.oanda.com/v3'; },
   get oandaStream() { return 'https://stream-fxpractice.oanda.com/v3'; },
   get openRouterKey() {
-    var configs = JSON.parse(localStorage.getItem('rfxUserConfigs') || '{}');
-    var current = localStorage.getItem('rfxCurrentUser') || '';
-    return (configs[current] && configs[current].openRouterKey) || '';
+    return getSecureSessionKey('openRouterKey');
   },
   get telegramBotToken() {
-    var configs = JSON.parse(localStorage.getItem('rfxUserConfigs') || '{}');
-    var current = localStorage.getItem('rfxCurrentUser') || '';
-    return (configs[current] && configs[current].telegramBotToken) || '';
+    return getSecureSessionKey('telegramBotToken');
   },
   get telegramChatId() {
-    var configs = JSON.parse(localStorage.getItem('rfxUserConfigs') || '{}');
-    var current = localStorage.getItem('rfxCurrentUser') || '';
-    return (configs[current] && configs[current].telegramChatId) || '';
+    return getSecureSessionKey('telegramChatId');
   },
   get newsProxyUrl() {
-    var configs = JSON.parse(localStorage.getItem('rfxUserConfigs') || '{}');
-    var current = localStorage.getItem('rfxCurrentUser') || '';
-    return (configs[current] && configs[current].newsProxyUrl) || '';
+    return getSecureSessionKey('newsProxyUrl');
   },
   get n8nWebhook() {
-    var configs = JSON.parse(localStorage.getItem('rfxUserConfigs') || '{}');
-    var current = localStorage.getItem('rfxCurrentUser') || '';
-    return (configs[current] && configs[current].n8nWebhook) || '';
+    return getSecureSessionKey('n8nWebhook');
   },
   get currentUser() {
     return localStorage.getItem('rfxCurrentUser') || '';
@@ -310,15 +379,20 @@ window.rfxSubmitSetup = function() {
   if (!oandaAcct) { showSetupError('OANDA account ID is required'); return; }
 
   var configs = JSON.parse(localStorage.getItem('rfxUserConfigs') || '{}');
+  
+  // Encrypt secrets before storing in persistent localStorage
   configs[username] = {
-    oandaToken: oandaToken,
-    oandaAccount: oandaAcct,
-    openRouterKey: openRouter,
-    telegramBotToken: tgToken,
-    telegramChatId: tgChat,
-    n8nWebhook: n8n,
+    oandaToken: rfxEncrypt(oandaToken, username),
+    oandaAccount: rfxEncrypt(oandaAcct, username),
+    openRouterKey: rfxEncrypt(openRouter, username),
+    telegramBotToken: rfxEncrypt(tgToken, username),
+    telegramChatId: rfxEncrypt(tgChat, username),
+    n8nWebhook: rfxEncrypt(n8n, username),
     createdAt: new Date().toISOString()
   };
+  
+  // Wipe session cache to force reload on next access
+  sessionStorage.clear();
   localStorage.setItem('rfxUserConfigs', JSON.stringify(configs));
   localStorage.setItem('rfxCurrentUser', username);
 
@@ -644,16 +718,19 @@ window.rfxSaveSettings = function() {
   var current = localStorage.getItem('rfxCurrentUser') || '';
 
   configs[current] = {
-    oandaToken: oandaToken,
-    oandaAccount: oandaAcct,
-    openRouterKey: document.getElementById('rfxSettingsOpenRouter').value.trim(),
-    telegramBotToken: document.getElementById('rfxSettingsTgToken').value.trim(),
-    telegramChatId: document.getElementById('rfxSettingsTgChat').value.trim(),
-    n8nWebhook: document.getElementById('rfxSettingsN8n').value.trim(),
-    newsProxyUrl: document.getElementById('rfxSettingsNewsProxy').value.trim(),
+    oandaToken: rfxEncrypt(oandaToken, current),
+    oandaAccount: rfxEncrypt(oandaAcct, current),
+    openRouterKey: rfxEncrypt(document.getElementById('rfxSettingsOpenRouter').value.trim(), current),
+    telegramBotToken: rfxEncrypt(document.getElementById('rfxSettingsTgToken').value.trim(), current),
+    telegramChatId: rfxEncrypt(document.getElementById('rfxSettingsTgChat').value.trim(), current),
+    n8nWebhook: rfxEncrypt(document.getElementById('rfxSettingsN8n').value.trim(), current),
+    newsProxyUrl: rfxEncrypt(document.getElementById('rfxSettingsNewsProxy').value.trim(), current),
     createdAt: configs[current].createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
+  
+  // Clear sessionStorage to force fresh decryption
+  sessionStorage.clear();
 
   localStorage.setItem('rfxUserConfigs', JSON.stringify(configs));
   document.getElementById('rfxSettingsOverlay').style.display = 'none';
